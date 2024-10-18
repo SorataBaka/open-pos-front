@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/router";
+import io from "socket.io-client";
 export interface Product {
 	_id: string;
 	product_name: string;
@@ -38,7 +39,7 @@ export default function Serve() {
 			router.replace("/login");
 			return;
 		}
-		fetch("https://pos.tianharjuno.com/api/v1/order/list?type=serve", {
+		fetch("https://pos.tianharjuno.com/api/v1/order/list?type=serve&limit=10", {
 			method: "GET",
 			headers: {
 				Authorization: token,
@@ -52,6 +53,36 @@ export default function Serve() {
 				setOrders(responseJson.data);
 			});
 		});
+	}, [router]);
+
+	useEffect(() => {
+		const socket = io("https://pos.tianharjuno.com");
+		socket.on("message", () => {
+			if (!router.isReady) return;
+			const token = localStorage.getItem("token");
+			if (token === null) {
+				router.replace("/login");
+				return;
+			}
+			fetch("https://pos.tianharjuno.com/api/v1/order/list?type=serve", {
+				method: "GET",
+				headers: {
+					Authorization: token,
+				},
+			}).then((response) => {
+				if (response.status !== 200) {
+					toast.error("Error fetching orders");
+					return;
+				}
+				response.json().then((responseJson) => {
+					setOrders(responseJson.data);
+				});
+			});
+		});
+
+		return () => {
+			socket.disconnect();
+		};
 	}, [router]);
 
 	useEffect(() => {
@@ -88,7 +119,7 @@ export default function Serve() {
 	}, [orders]);
 
 	return (
-		<main className="grid grid-cols-5 align-middle justify-center min-h-screen bg-black gap-10 p-5">
+		<main className="grid grid-cols-5 grid-rows-2 align-middle justify-center min-h-screen bg-black gap-10 p-5">
 			{orders.map((order, index) => {
 				if (index == 0) {
 					return (
