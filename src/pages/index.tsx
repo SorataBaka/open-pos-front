@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 
@@ -61,6 +61,28 @@ export default function Home() {
 		}
 		return total;
 	};
+	const addOrder = useCallback(
+		(product: Product) => {
+			let found = false;
+			for (let i = 0; i < orders.length; i++) {
+				if (orders[i].item_name === product.product_name) {
+					orders[i].item_amount++;
+					setOrders([...orders]);
+					found = true;
+				}
+			}
+			if (!found) {
+				setOrders([
+					...orders,
+					{
+						item_amount: 1,
+						item_name: product.product_name,
+					},
+				]);
+			}
+		},
+		[orders]
+	);
 
 	return (
 		<main className="flex flex-row align-middle justify-center min-h-screen bg-white">
@@ -88,27 +110,8 @@ export default function Home() {
 						<div
 							className="w-50 h-50 text-black bg-white rounded-xl flex w-50 flex-col align-middle justify-center text-center active:scale-95"
 							key={index}
-							onClick={(e) => {
-								e.preventDefault();
-								const isOrdered = orders.some((obj) =>
-									obj.item_name.includes(item.product_name)
-								);
-								if (isOrdered) {
-									const newOrder = orders.map((order) => {
-										return order.item_name === item.product_name
-											? { ...order, item_amount: order.item_amount + 1 }
-											: order;
-									});
-									setOrders(newOrder);
-								} else {
-									setOrders([
-										...orders,
-										{
-											item_amount: 1,
-											item_name: item.product_name,
-										},
-									]);
-								}
+							onClick={() => {
+								addOrder(item);
 							}}
 						>
 							<h1 className="text-2xl">{item.product_name}</h1>
@@ -141,6 +144,7 @@ export default function Home() {
 						リセット
 					</button>
 					<button
+						disabled={orders.length === 0}
 						className="w-full text-3xl bg-blue-700 p-5 rounded-xl text-white font-bold"
 						onClick={(e) => {
 							e.preventDefault();
